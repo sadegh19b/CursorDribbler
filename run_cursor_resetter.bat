@@ -19,4 +19,4 @@ if "!PWSH_FOUND!"=="0" (
 )
 
 REM Run the script with elevated privileges
-!PWSH! -Command "if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Start-Process '!PWSH!' -ArgumentList '-ExecutionPolicy Bypass -NoExit -File \".\cursor_resetter.ps1\"' -Verb RunAs } else { & '!PWSH!' -ExecutionPolicy Bypass -NoExit -File '.\cursor_resetter.ps1' }"
+!PWSH! -Command "if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Start-Process '!PWSH!' -ArgumentList '-ExecutionPolicy Bypass -NoExit -File \".\scripts\cursor_resetter.ps1\"' -Verb RunAs } else { & '!PWSH!' -ExecutionPolicy Bypass -NoExit -File '.\scripts\cursor_resetter.ps1' }"

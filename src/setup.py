@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import pathlib
 
 def install_requirements():
     """Install required packages"""
@@ -14,16 +15,22 @@ def convert_png_to_ico():
     try:
         from PIL import Image
         
+        # Get root directory (parent of src directory)
+        root_dir = pathlib.Path(__file__).parent.parent
+        
         # Check if the logo file exists
-        if os.path.exists('logo.png'):
+        logo_path = root_dir / 'assets' / 'logo.png'
+        icon_path = root_dir / 'assets' / 'icon.ico'
+        
+        if os.path.exists(logo_path):
             print("Converting logo to ICO format...")
-            img = Image.open('logo.png')
+            img = Image.open(logo_path)
             icon_sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
-            img.save('icon.ico', sizes=icon_sizes)
+            img.save(icon_path, sizes=icon_sizes)
             print("Logo converted successfully!")
             return True
         else:
-            print("Logo file not found: logo.png")
+            print(f"Logo file not found: {logo_path}")
             return False
     except ImportError:
         print("Could not import PIL. Icon conversion skipped.")
@@ -36,29 +43,36 @@ def build_exe():
     """Build executable using PyInstaller"""
     print("Building executable...")
     
+    # Get root directory (parent of src directory)
+    root_dir = pathlib.Path(__file__).parent.parent
+    
     # Import version information
     from constants import APP_NAME, VERSION
     
     # Convert logo to ICO if possible
     has_icon = convert_png_to_ico()
-    icon_path = 'icon.ico' if has_icon else 'NONE'
+    icon_path = os.path.join(root_dir, 'assets', 'icon.ico') if has_icon else 'NONE'
     
     # Build the standard version
     print("\n1. Building standard version...")
+    
+    # Define version info file path
+    version_info_path = os.path.join(root_dir, 'version_info.txt')
+    
     cmd_simple = [
         'pyinstaller',
         '--onefile',  # Create a single executable file
         '--console',  # Show console window
         '--name=CursorDribbler',  # Name of the executable
         f'--icon={icon_path}',  # Use the created icon or NONE
-        '--add-data=constants.py;.',  # Add necessary data files
-        '--add-data=cursor_resetter.ps1;.',  # Add PowerShell script directly to executable
-        f'--version-file=version_info.txt',  # Add version information
-        'main.py'  # Script to convert
+        '--add-data=src/constants.py;src',  # Add necessary data files with correct path
+        '--add-data=scripts/cursor_resetter.ps1;scripts/',  # Add PowerShell script directly to executable
+        f'--version-file={version_info_path}',  # Add version information
+        os.path.join('src', 'main.py')  # Script to convert with correct path
     ]
     
     # Create version info file
-    with open('version_info.txt', 'w') as f:
+    with open(version_info_path, 'w') as f:
         f.write(f"""
 VSVersionInfo(
   ffi=FixedFileInfo(
@@ -88,6 +102,9 @@ VSVersionInfo(
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 )""")
+    
+    # Change the working directory to root for PyInstaller
+    os.chdir(root_dir)
     
     subprocess.check_call(cmd_simple)
     print("Standard version built successfully!")

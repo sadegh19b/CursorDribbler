@@ -1,6 +1,6 @@
 # Cursor Dribbler
 
-![Cursor Dribbler Splash](splash.png)
+![Cursor Dribbler Splash](assets/splash.png)
 
 A simple tool to check Cursor editor account information, subscription status, usage statistics, and reset machine id.
 
@@ -25,11 +25,11 @@ A simple tool to check Cursor editor account information, subscription status, u
 1. Make sure you have Python installed
 2. Install the required packages:
    ```
-   pip install -r requirements.txt
+   pip install -r src/requirements.txt
    ```
 3. Run the main script:
    ```
-   python main.py
+   python src/main.py
    ```
 
 ### Building the executable
@@ -38,7 +38,7 @@ A simple tool to check Cursor editor account information, subscription status, u
 2. Either:
    - Run the setup script:
      ```
-     python setup.py
+     python src/setup.py
      ```
    - Or run the batch file:
      ```

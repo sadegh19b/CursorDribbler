@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import shutil
+import pathlib
 from colorama import Fore, Style
 from constants import EMOJI
 
@@ -12,19 +13,17 @@ def run_cursor_resetter():
     if getattr(sys, 'frozen', False):
         # Running as compiled exe
         base_path = sys._MEIPASS
+        ps_script_path = os.path.join(base_path, "scripts", "cursor_resetter.ps1")
     else:
         # Running as script
         base_path = os.path.dirname(os.path.abspath(__file__))
+        root_dir = pathlib.Path(base_path).parent
+        ps_script_path = os.path.join(root_dir, "scripts", "cursor_resetter.ps1")
     
-    ps_script_path = os.path.join(base_path, "cursor_resetter.ps1")
-    
-    # If running as script and file doesn't exist in the same directory, look for it
-    if not os.path.exists(ps_script_path) and not getattr(sys, 'frozen', False):
-        if os.path.exists("cursor_resetter.ps1"):
-            ps_script_path = "cursor_resetter.ps1"
-        else:
-            print(f"{Fore.RED}{EMOJI['ERROR']} cursor_resetter.ps1 not found.{Style.RESET_ALL}")
-            return False
+    # Check if the script exists
+    if not os.path.exists(ps_script_path):
+        print(f"{Fore.RED}{EMOJI['ERROR']} cursor_resetter.ps1 not found at: {ps_script_path}{Style.RESET_ALL}")
+        return False
     
     try:
         # Check for PowerShell 7 (pwsh) first, then fall back to regular PowerShell
@@ -35,7 +34,7 @@ def run_cursor_resetter():
         admin_check = subprocess.run([
             powershell_exe, 
             "-Command", 
-            "[Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"
+            "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"
         ], capture_output=True, text=True)
         
         is_admin = admin_check.stdout.strip().lower() == "true"
