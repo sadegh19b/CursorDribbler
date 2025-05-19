@@ -1,6 +1,8 @@
 # Cursor Dribbler
 
-A simple tool to check your Cursor AI account information, subscription status, usage statistics, and reset your Cursor machine id.
+![Cursor Dribbler Logo](logo-type.png)
+
+A simple tool to check Cursor AI account information, subscription status, usage statistics, and reset Cursor machine id.
 
 ## Features
 
