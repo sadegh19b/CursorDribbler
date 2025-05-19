@@ -1,10 +1,14 @@
 from utils import print_logo, print_menu
 from account_info import display_account_info
 from resetter import run_cursor_resetter
-from constants import EMOJI
+from constants import EMOJI, APP_NAME, VERSION
 from colorama import Fore, Style
+import os
 
 def main():
+    # Set console title with version
+    os.system(f"title {APP_NAME} {VERSION}")
+    
     print_logo()
     while True:
         display_account_info()
