@@ -15,15 +15,15 @@ def convert_png_to_ico():
         from PIL import Image
         
         # Check if the logo file exists
-        if os.path.exists('logo-512.png'):
+        if os.path.exists('logo.png'):
             print("Converting logo to ICO format...")
-            img = Image.open('logo-512.png')
+            img = Image.open('logo.png')
             icon_sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
-            img.save('logo.ico', sizes=icon_sizes)
+            img.save('icon.ico', sizes=icon_sizes)
             print("Logo converted successfully!")
             return True
         else:
-            print("Logo file not found: logo-512.png")
+            print("Logo file not found: logo.png")
             return False
     except ImportError:
         print("Could not import PIL. Icon conversion skipped.")
@@ -41,7 +41,7 @@ def build_exe():
     
     # Convert logo to ICO if possible
     has_icon = convert_png_to_ico()
-    icon_path = 'logo.ico' if has_icon else 'NONE'
+    icon_path = 'icon.ico' if has_icon else 'NONE'
     
     # Build the standard version
     print("\n1. Building standard version...")
