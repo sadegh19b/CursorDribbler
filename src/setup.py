@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import pathlib
+from datetime import datetime
 
 def install_requirements():
     """Install required packages"""
@@ -14,14 +15,14 @@ def convert_png_to_ico():
     """Convert PNG logo to ICO format"""
     try:
         from PIL import Image
-        
+
         # Get root directory (parent of src directory)
         root_dir = pathlib.Path(__file__).parent.parent
-        
+
         # Check if the logo file exists
         logo_path = root_dir / 'assets' / 'logo.png'
         icon_path = root_dir / 'assets' / 'icon.ico'
-        
+
         if os.path.exists(logo_path):
             print("Converting logo to ICO format...")
             img = Image.open(logo_path)
@@ -42,23 +43,23 @@ def convert_png_to_ico():
 def build_exe():
     """Build executable using PyInstaller"""
     print("Building executable...")
-    
+
     # Get root directory (parent of src directory)
     root_dir = pathlib.Path(__file__).parent.parent
-    
+
     # Import version information
     from constants import APP_NAME, VERSION
-    
+
     # Convert logo to ICO if possible
     has_icon = convert_png_to_ico()
     icon_path = os.path.join(root_dir, 'assets', 'icon.ico') if has_icon else 'NONE'
-    
+
     # Build the standard version
     print("\n1. Building standard version...")
-    
+
     # Define version info file path
     version_info_path = os.path.join(root_dir, 'version_info.txt')
-    
+
     cmd_simple = [
         'pyinstaller',
         '--onefile',  # Create a single executable file
@@ -66,11 +67,10 @@ def build_exe():
         '--name=CursorDribbler',  # Name of the executable
         f'--icon={icon_path}',  # Use the created icon or NONE
         '--add-data=src/constants.py;src',  # Add necessary data files with correct path
-        '--add-data=scripts/cursor_resetter.ps1;scripts/',  # Add PowerShell script directly to executable
         f'--version-file={version_info_path}',  # Add version information
         os.path.join('src', 'main.py')  # Script to convert with correct path
     ]
-    
+
     # Create version info file
     with open(version_info_path, 'w') as f:
         f.write(f"""
@@ -94,18 +94,18 @@ VSVersionInfo(
           StringStruct(u'FileDescription', u'{APP_NAME}'),
           StringStruct(u'FileVersion', u'{VERSION}'),
           StringStruct(u'InternalName', u'{APP_NAME}'),
-          StringStruct(u'LegalCopyright', u'Copyright (c) 2025 SB'),
+          StringStruct(u'LegalCopyright', u'Copyright (c) {datetime.now().year} SB'),
           StringStruct(u'OriginalFilename', u'CursorDribbler.exe'),
           StringStruct(u'ProductName', u'{APP_NAME}'),
           StringStruct(u'ProductVersion', u'{VERSION}')])
-      ]), 
+      ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 )""")
-    
+
     # Change the working directory to root for PyInstaller
     os.chdir(root_dir)
-    
+
     subprocess.check_call(cmd_simple)
     print("Standard version built successfully!")
     print("You can find the executable in the 'dist' folder:")
@@ -116,14 +116,14 @@ def _version_to_tuple(version):
     # Remove 'v' prefix if exists
     if version.startswith('v'):
         version = version[1:]
-    
+
     # Split by dots and convert to integers
     parts = version.split('.')
-    
+
     # Ensure we have at least 4 parts (pad with zeros if needed)
     while len(parts) < 4:
         parts.append('0')
-    
+
     # Convert to integers and join with commas
     return ', '.join([str(int(p)) for p in parts])
 
