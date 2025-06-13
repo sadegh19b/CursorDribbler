@@ -9,6 +9,69 @@ $YELLOW = "`e[33m"
 $BLUE = "`e[34m"
 $NC = "`e[0m"
 
+# Add this function after color definitions
+function Clear-VscdbTelemetryData {
+    param($basePath)
+
+    Write-Host ""
+    Write-Host "$GREEN[Info]$NC Attempting to clear specific telemetry data from state.vscdb..."
+
+    # Check if sqlite3 is available
+    $sqliteAvailable = Get-Command sqlite3 -ErrorAction SilentlyContinue
+    if (-not $sqliteAvailable) {
+        Write-Host "$RED[Error]$NC sqlite3 command is not available in your PATH."
+        Write-Host "$YELLOW[Tip]$NC Please install SQLite3 and ensure it's in your system's PATH to use this feature."
+        return
+    }
+
+    $dbFile = Join-Path -Path $basePath -ChildPath "globalStorage\state.vscdb"
+
+    if (-not (Test-Path $dbFile)) {
+        Write-Host "$YELLOW[Warning]$NC Database file not found, skipping: $dbFile"
+        return
+    }
+
+    # Backup file before modification
+    try {
+        $filename = Split-Path -Path $dbFile -Leaf
+        $backupName = "$filename.backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        Write-Host "$GREEN[Info]$NC Backing up database file..."
+        Copy-Item -Path $dbFile -Destination "$BACKUP_DIR\$backupName" -Force
+        Write-Host "$GREEN[Success]$NC Database file backed up: $BACKUP_DIR\$backupName"
+    } catch {
+        Write-Host "$RED[Error]$NC Failed to back up database file: $dbFile $($_.Exception.Message)"
+        Write-Host "$YELLOW[Warning]$NC Proceeding without a backup."
+    }
+    
+    $keysToDelete = @(
+        'telemetry.firstSessionDate',
+        'telemetry.lastSessionDate',
+        'telemetry.currentSessionDate',
+        'cursorAuth/onboardingDate',
+        'aiCodeTrackingStartTime',
+        'aiCodeTrackingLines'
+    )
+
+    $keyList = $keysToDelete | ForEach-Object { "'$_'" } | Join-String -Separator ', '
+    $sqlQuery = "DELETE FROM itemTable WHERE key IN ($keyList);"
+
+    Write-Host "$BLUE[Debug]$NC Executing SQL query: $sqlQuery"
+
+    try {
+        $process = Start-Process -FilePath "sqlite3" -ArgumentList @("`"$dbFile`"", $sqlQuery) -Wait -NoNewWindow -PassThru
+        
+        if ($process.ExitCode -eq 0) {
+            Write-Host "$GREEN[Success]$NC Successfully cleared telemetry data from $dbFile"
+        } else {
+            Write-Host "$RED[Error]$NC sqlite3 command failed with exit code $($process.ExitCode)."
+            Write-Host "$RED[Error]$NC Failed to clear telemetry data from $dbFile"
+        }
+    }
+    catch {
+        Write-Host "$RED[Error]$NC An error occurred while executing sqlite3: $($_.Exception.Message)"
+    }
+}
+
 # Configuration file paths
 $STORAGE_FILE = "$env:APPDATA\Cursor\User\globalStorage\storage.json"
 $BACKUP_DIR = "$env:APPDATA\Cursor\User\globalStorage\backups"
@@ -19,44 +82,58 @@ function Cursor-Initialization {
     Write-Host "$GREEN[Info]$NC Executing Cursor initialization cleanup..."
     $BASE_PATH = "$env:APPDATA\Cursor\User"
 
-    $filesToDelete = @(
-        (Join-Path -Path $BASE_PATH -ChildPath "globalStorage\state.vscdb"),
-        (Join-Path -Path $BASE_PATH -ChildPath "globalStorage\state.vscdb.backup")
-    )
+    $stateDbFile = Join-Path -Path $BASE_PATH -ChildPath "globalStorage\state.vscdb"
+    $stateDbBackupFile = Join-Path -Path $BASE_PATH -ChildPath "globalStorage\state.vscdb.backup"
     
     $folderToCleanContents = Join-Path -Path $BASE_PATH -ChildPath "History"
     $folderToDeleteCompletely = Join-Path -Path $BASE_PATH -ChildPath "workspaceStorage"
 
     Write-Host "$BLUE[Debug]$NC Base path: $BASE_PATH"
 
-    # Delete specified files
-    $confirmation = Read-Host -Prompt "$YELLOW[Question]$NC Do you want to delete these files? '$filesToDelete' (y/n)"
-    if ($confirmation -eq 'y') {
-        foreach ($file in $filesToDelete) {
-            Write-Host "$BLUE[Debug]$NC Checking file: $file"
-            if (Test-Path $file) {
-                try {
-                    # Backup file
-                    $filename = Split-Path -Path $file -Leaf
-                    $backupName = "$filename.backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-                    Write-Host "$GREEN[Info]$NC Backing up file..."
-                    Copy-Item $file "$BACKUP_DIR\$backupName"
-                    Write-Host "$GREEN[Success]$NC File backed up: $BACKUP_DIR\$backupName"
+    # Handle state.vscdb
+    if (Test-Path $stateDbFile) {
+        Write-Host ""
+        Write-Host "$YELLOW[Question]$NC How do you want to handle '$stateDbFile'?"
+        Write-Host "1) Delete the file (recommended for a full reset)"
+        Write-Host "2) Clean specific telemetry data from the file"
+        Write-Host "3) Skip (Press Enter or any other key to skip)"
+        $choice = Read-Host "Please enter your choice (1, 2, or 3)"
 
-                    # Delete file
-                    Remove-Item -Path $file -Force -ErrorAction Stop
-                    Write-Host "$GREEN[Success]$NC File deleted: $file"
+        if ($choice -eq "1") {
+            Write-Host "$GREEN[Info]$NC Deleting state database file and its backup..."
+            $filesToDelete = @($stateDbFile, $stateDbBackupFile)
+            foreach ($file in $filesToDelete) {
+                if (Test-Path $file) {
+                    try {
+                        $filename = Split-Path -Path $file -Leaf
+                        $backupName = "$filename.backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+                        Write-Host "$GREEN[Info]$NC Backing up file: $file"
+                        Copy-Item -Path $file -Destination "$BACKUP_DIR\$backupName" -Force
+                        Write-Host "$GREEN[Success]$NC File backed up: $BACKUP_DIR\$backupName"
+
+                        Remove-Item -Path $file -Force -ErrorAction Stop
+                        Write-Host "$GREEN[Success]$NC File deleted: $file"
+                    } catch {
+                        Write-Host "$RED[Error]$NC Failed to handle file: $file $($_.Exception.Message)"
+                    }
                 }
-                catch {
-                    Write-Host "$RED[Error]$NC Failed to delete file: $file $($_.Exception.Message)"
-                }
-            } else {
-                Write-Host "$YELLOW[Warning]$NC File does not exist, skipping deletion: $file"
             }
-            Write-Host ""
+        } elseif ($choice -eq "2") {
+            Clear-VscdbTelemetryData -basePath $BASE_PATH
+            if (Test-Path $stateDbBackupFile) {
+                Write-Host "$GREEN[Info]$NC Removing old backup file: $stateDbBackupFile"
+                try {
+                    Remove-Item -Path $stateDbBackupFile -Force -ErrorAction Stop
+                    Write-Host "$GREEN[Success]$NC Old backup file removed."
+                } catch {
+                    Write-Host "$RED[Error]$NC Failed to remove old backup file: $($_.Exception.Message)"
+                }
+            }
+        } else {
+            Write-Host "$YELLOW[Info]$NC Action on '$stateDbFile' skipped by user."
         }
     } else {
-        Write-Host "$YELLOW[Info]$NC Deletion of files skipped by user: $filesToDelete"
+        Write-Host "$YELLOW[Warning]$NC State database file not found, skipping associated actions: $stateDbFile"
     }
 
     Write-Host ""
