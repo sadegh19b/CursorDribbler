@@ -18,4 +18,4 @@ EMOJI = {
 }
 
 APP_NAME = "Cursor Dribbler"
-VERSION = "v1.0.0"
+VERSION = "v1.1.0"

@@ -13,7 +13,100 @@ $NC = "`e[0m"
 $STORAGE_FILE = "$env:APPDATA\Cursor\User\globalStorage\storage.json"
 $BACKUP_DIR = "$env:APPDATA\Cursor\User\globalStorage\backups"
 
-# Check administrator privileges
+# Add Cursor initialization function
+function Cursor-Initialization {
+    Write-Host ""
+    Write-Host "$GREEN[Info]$NC Executing Cursor initialization cleanup..."
+    $BASE_PATH = "$env:APPDATA\Cursor\User"
+
+    $filesToDelete = @(
+        (Join-Path -Path $BASE_PATH -ChildPath "globalStorage\state.vscdb"),
+        (Join-Path -Path $BASE_PATH -ChildPath "globalStorage\state.vscdb.backup")
+    )
+    
+    $folderToCleanContents = Join-Path -Path $BASE_PATH -ChildPath "History"
+    $folderToDeleteCompletely = Join-Path -Path $BASE_PATH -ChildPath "workspaceStorage"
+
+    Write-Host "$BLUE[Debug]$NC Base path: $BASE_PATH"
+
+    # Delete specified files
+    $confirmation = Read-Host -Prompt "$YELLOW[Question]$NC Do you want to delete these files? '$filesToDelete' (y/n)"
+    if ($confirmation -eq 'y') {
+        foreach ($file in $filesToDelete) {
+            Write-Host "$BLUE[Debug]$NC Checking file: $file"
+            if (Test-Path $file) {
+                try {
+                    # Backup file
+                    $filename = Split-Path -Path $file -Leaf
+                    $backupName = "$filename.backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+                    Write-Host "$GREEN[Info]$NC Backing up file..."
+                    Copy-Item $file "$BACKUP_DIR\$backupName"
+                    Write-Host "$GREEN[Success]$NC File backed up: $BACKUP_DIR\$backupName"
+
+                    # Delete file
+                    Remove-Item -Path $file -Force -ErrorAction Stop
+                    Write-Host "$GREEN[Success]$NC File deleted: $file"
+                }
+                catch {
+                    Write-Host "$RED[Error]$NC Failed to delete file: $file $($_.Exception.Message)"
+                }
+            } else {
+                Write-Host "$YELLOW[Warning]$NC File does not exist, skipping deletion: $file"
+            }
+            Write-Host ""
+        }
+    } else {
+        Write-Host "$YELLOW[Info]$NC Deletion of files skipped by user: $filesToDelete"
+    }
+
+    Write-Host ""
+
+    # Clean contents of specified folder
+    Write-Host "$BLUE[Debug]$NC Checking folder to clean contents: $folderToCleanContents"
+    if (Test-Path $folderToCleanContents) {
+        $confirmation = Read-Host -Prompt "$YELLOW[Question]$NC Do you want to clear the contents of this folder? '$folderToCleanContents' (y/n)"
+        if ($confirmation -eq 'y') {
+            try {
+                # Get subitems to delete to avoid deleting History folder itself
+                Get-ChildItem -Path $folderToCleanContents -Recurse | Remove-Item -Recurse -Force -ErrorAction Stop
+                Write-Host "$GREEN[Success]$NC Folder contents cleared: $folderToCleanContents"
+            }
+            catch {
+                Write-Host "$RED[Error]$NC Failed to clear folder contents: $folderToCleanContents $($_.Exception.Message)"
+            }
+        } else {
+            Write-Host "$YELLOW[Info]$NC Cleanup of folder skipped by user: $folderToCleanContents"
+        }
+    } else {
+        Write-Host "$YELLOW[Warning]$NC Folder does not exist, skipping cleanup: $folderToCleanContents"
+    }
+
+    Write-Host ""
+
+    # Delete specified folder and its contents
+    Write-Host "$BLUE[Debug]$NC Checking folder to delete: $folderToDeleteCompletely"
+    if (Test-Path $folderToDeleteCompletely) {
+        $confirmation = Read-Host -Prompt "$YELLOW[Question]$NC Do you want to delete this folder and all its contents? '$folderToDeleteCompletely' (y/n)"
+        if ($confirmation -eq 'y') {
+            try {
+                Remove-Item -Path $folderToDeleteCompletely -Recurse -Force -ErrorAction Stop
+                Write-Host "$GREEN[Success]$NC Folder deleted: $folderToDeleteCompletely"
+            }
+            catch {
+                Write-Host "$RED[Error]$NC Failed to delete folder: $folderToDeleteCompletely $($_.Exception.Message)"
+            }
+        } else {
+            Write-Host "$YELLOW[Info]$NC Deletion of folder skipped by user: $folderToDeleteCompletely"
+        }
+    } else {
+        Write-Host "$YELLOW[Warning]$NC Folder does not exist, skipping deletion: $folderToDeleteCompletely"
+    }
+
+    Write-Host "$GREEN[Info]$NC Cursor initialization cleanup completed."
+    Write-Host "" # Add empty line for better output formatting
+}
+
+# Check for administrator privileges
 function Test-Administrator {
     $user = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($user)
@@ -40,7 +133,7 @@ Write-Host @"
 
 "@
 Write-Host "$BLUE================================$NC"
-Write-Host "$GREEN   Cursor Device ID Modification Tool    $NC"
+Write-Host "$GREEN   Cursor Device ID Resetter          $NC"
 Write-Host "$BLUE================================$NC"
 Write-Host ""
 
@@ -53,7 +146,7 @@ function Get-CursorVersion {
         if (Test-Path $packagePath) {
             $packageJson = Get-Content $packagePath -Raw | ConvertFrom-Json
             if ($packageJson.version) {
-                Write-Host "$GREEN[Info]$NC Currently installed Cursor version: v$($packageJson.version)"
+                Write-Host "$GREEN[Info]$NC Current installed Cursor version: v$($packageJson.version)"
                 return $packageJson.version
             }
         }
@@ -63,13 +156,13 @@ function Get-CursorVersion {
         if (Test-Path $altPath) {
             $packageJson = Get-Content $altPath -Raw | ConvertFrom-Json
             if ($packageJson.version) {
-                Write-Host "$GREEN[Info]$NC Currently installed Cursor version: v$($packageJson.version)"
+                Write-Host "$GREEN[Info]$NC Current installed Cursor version: v$($packageJson.version)"
                 return $packageJson.version
             }
         }
 
-        Write-Host "$YELLOW[Warning]$NC Cannot detect Cursor version"
-        Write-Host "$YELLOW[Tip]$NC Please ensure Cursor is properly installed"
+        Write-Host "$YELLOW[Warning]$NC Unable to detect Cursor version"
+        Write-Host "$YELLOW[Tip]$NC Please ensure Cursor is correctly installed"
         return $null
     }
     catch {
@@ -82,11 +175,11 @@ function Get-CursorVersion {
 $cursorVersion = Get-CursorVersion
 Write-Host ""
 
-Write-Host "$YELLOW[Important Note]$NC Latest 0.50.x (supported)"
+Write-Host "$YELLOW[Supported Version]$NC Cursor 1.0.x"
 Write-Host ""
 
-# Check and close Cursor processes
-Write-Host "$GREEN[Info]$NC Checking Cursor processes..."
+# Check and close Cursor process
+Write-Host "$GREEN[Info]$NC Checking Cursor process..."
 
 function Get-ProcessDetails {
     param($processName)
@@ -96,7 +189,7 @@ function Get-ProcessDetails {
         Format-List
 }
 
-# Define maximum retry count and wait time
+# Define maximum retries and wait time
 $MAX_RETRIES = 5
 $WAIT_TIME = 1
 
@@ -106,7 +199,7 @@ function Close-CursorProcess {
     
     $process = Get-Process -Name $processName -ErrorAction SilentlyContinue
     if ($process) {
-        Write-Host "$YELLOW[Warning]$NC Found $processName running"
+        Write-Host "$YELLOW[Warning]$NC Found $processName is running"
         Get-ProcessDetails $processName
         
         Write-Host "$YELLOW[Warning]$NC Trying to close $processName..."
@@ -121,25 +214,28 @@ function Close-CursorProcess {
             if ($retryCount -ge $MAX_RETRIES) {
                 Write-Host "$RED[Error]$NC Unable to close $processName after $MAX_RETRIES attempts"
                 Get-ProcessDetails $processName
-                Write-Host "$RED[Error]$NC Please close the process manually and try again"
+                Write-Host "$RED[Error]$NC Please close the cursor process manually and try again"
                 Read-Host "Press Enter to exit"
                 exit 1
             }
-            Write-Host "$YELLOW[Warning]$NC Waiting for process to close, attempt $retryCount/$MAX_RETRIES..."
+            Write-Host "$YELLOW[Warning]$NC Waiting for process to close, trying $retryCount/$MAX_RETRIES..."
             Start-Sleep -Seconds $WAIT_TIME
         }
         Write-Host "$GREEN[Info]$NC $processName has been successfully closed"
     }
 }
 
-# Close all Cursor processes
-Close-CursorProcess "Cursor"
-Close-CursorProcess "cursor"
-
 # Create backup directory
 if (-not (Test-Path $BACKUP_DIR)) {
     New-Item -ItemType Directory -Path $BACKUP_DIR | Out-Null
 }
+
+# Close all Cursor processes
+Close-CursorProcess "Cursor"
+Close-CursorProcess "cursor"
+
+# Execute Cursor initialization cleanup
+Cursor-Initialization
 
 # Backup existing configuration
 if (Test-Path $STORAGE_FILE) {
@@ -165,7 +261,7 @@ function Get-RandomHex {
     return $hexString
 }
 
-# Improved ID generation function
+# Improve ID generation function
 function New-StandardMachineId {
     $template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
     $result = $template -replace '[xy]', {
@@ -180,10 +276,10 @@ function New-StandardMachineId {
 # Use new function when generating ID
 $MAC_MACHINE_ID = New-StandardMachineId
 $UUID = [System.Guid]::NewGuid().ToString()
-# Convert auth0|user_ to hexadecimal of byte array
+# Convert auth0|user_ to byte array hexadecimal
 $prefixBytes = [System.Text.Encoding]::UTF8.GetBytes("auth0|user_")
 $prefixHex = -join ($prefixBytes | ForEach-Object { '{0:x2}' -f $_ })
-# Generate 32 bytes (64 hex characters) of random part for machineId
+# Generate 32 bytes (64 hexadecimal characters) as random part of machineId
 $randomPart = Get-RandomHex -length 32
 $MACHINE_ID = "$prefixHex$randomPart"
 $SQM_ID = "{$([System.Guid]::NewGuid().ToString().ToUpper())}"
@@ -197,7 +293,7 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 function Update-MachineGuid {
     try {
-        # Check if registry path exists, create if not
+        # Check if registry path exists, if not create it
         $registryPath = "HKLM:\SOFTWARE\Microsoft\Cryptography"
         if (-not (Test-Path $registryPath)) {
             Write-Host "$YELLOW[Warning]$NC Registry path does not exist: $registryPath, creating..."
@@ -205,7 +301,7 @@ function Update-MachineGuid {
             Write-Host "$GREEN[Info]$NC Registry path created successfully"
         }
 
-        # Get current MachineGuid, use empty string as default if it doesn't exist
+        # Get current MachineGuid, if not exist use empty string as default value
         $originalGuid = ""
         try {
             $currentGuid = Get-ItemProperty -Path $registryPath -Name MachineGuid -ErrorAction SilentlyContinue
@@ -215,13 +311,13 @@ function Update-MachineGuid {
                 Write-Host "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography" 
                 Write-Host "    MachineGuid    REG_SZ    $originalGuid"
             } else {
-                Write-Host "$YELLOW[Warning]$NC MachineGuid value does not exist, will create new value"
+                Write-Host "$YELLOW[Warning]$NC MachineGuid value does not exist, creating new value"
             }
         } catch {
             Write-Host "$YELLOW[Warning]$NC Failed to get MachineGuid: $($_.Exception.Message)"
         }
 
-        # Create backup directory (if it doesn't exist)
+        # Create backup directory (if not exist)
         if (-not (Test-Path $BACKUP_DIR)) {
             New-Item -ItemType Directory -Path $BACKUP_DIR -Force | Out-Null
         }
@@ -232,9 +328,9 @@ function Update-MachineGuid {
             $backupResult = Start-Process "reg.exe" -ArgumentList "export", "`"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography`"", "`"$backupFile`"" -NoNewWindow -Wait -PassThru
             
             if ($backupResult.ExitCode -eq 0) {
-                Write-Host "$GREEN[Info]$NC Registry key backed up to: $backupFile"
+                Write-Host "$GREEN[Info]$NC Registry item backed up to: $backupFile"
             } else {
-                Write-Host "$YELLOW[Warning]$NC Backup creation failed, continuing execution..."
+                Write-Host "$YELLOW[Warning]$NC Backup creation failed, continuing..."
             }
         }
 
@@ -247,7 +343,7 @@ function Update-MachineGuid {
         # Verify update
         $verifyGuid = (Get-ItemProperty -Path $registryPath -Name MachineGuid -ErrorAction Stop).MachineGuid
         if ($verifyGuid -ne $newGuid) {
-            throw "Registry verification failed: Updated value ($verifyGuid) does not match expected value ($newGuid)"
+            throw "Registry verification failed: updated value ($verifyGuid) does not match expected value ($newGuid)"
         }
 
         Write-Host "$GREEN[Info]$NC Registry updated successfully:"
@@ -258,18 +354,18 @@ function Update-MachineGuid {
     catch {
         Write-Host "$RED[Error]$NC Registry operation failed: $($_.Exception.Message)"
         
-        # Try to restore backup (if it exists)
+        # Try to restore backup (if exist)
         if (($backupFile -ne $null) -and (Test-Path $backupFile)) {
-            Write-Host "$YELLOW[Recovery]$NC Restoring from backup..."
+            Write-Host "$YELLOW[Info]$NC Restoring from backup..."
             $restoreResult = Start-Process "reg.exe" -ArgumentList "import", "`"$backupFile`"" -NoNewWindow -Wait -PassThru
             
             if ($restoreResult.ExitCode -eq 0) {
-                Write-Host "$GREEN[Recovery Successful]$NC Original registry value has been restored"
+                Write-Host "$GREEN[Info]$NC Backup restored successfully"
             } else {
-                Write-Host "$RED[Error]$NC Recovery failed, please manually import the backup file: $backupFile"
+                Write-Host "$RED[Error]$NC Backup restore failed, please manually import backup file: $backupFile"
             }
         } else {
-            Write-Host "$YELLOW[Warning]$NC No backup file found or backup creation failed, cannot automatically recover"
+            Write-Host "$YELLOW[Warning]$NC Backup file not found or backup creation failed, cannot be automatically restored"
         }
         return $false
     }
@@ -317,7 +413,7 @@ try {
         )
         Write-Host "$GREEN[Info]$NC Configuration file updated successfully"
     } catch {
-        # If error occurs, try to restore original content
+        # If error, try to restore original content
         if ($originalContent) {
             [System.IO.File]::WriteAllText(
                 [System.IO.Path]::GetFullPath($STORAGE_FILE), 
@@ -325,9 +421,9 @@ try {
                 [System.Text.Encoding]::UTF8
             )
         }
-        throw "JSON processing failed: $_"
+        throw "Failed to process JSON: $_"
     }
-    # Directly update MachineGuid, no longer asking
+    # Directly execute update MachineGuid, no longer ask
     Update-MachineGuid
     # Display results
     Write-Host ""
@@ -360,32 +456,32 @@ try {
     Write-Host "$GREEN[Info]$NC Please restart Cursor to apply the new configuration"
     Write-Host ""
 
-    # Ask whether to disable automatic updates
+    # Ask if you want to disable automatic update
     Write-Host ""
-    Write-Host "$YELLOW[Question]$NC Do you want to disable Cursor automatic updates?"
-    Write-Host "0) No - Keep default settings (press Enter)"
-    Write-Host "1) Yes - Disable automatic updates"
-    $choice = Read-Host "Please enter option (0)"
+    Write-Host "$YELLOW[Question]$NC Do you want to disable Cursor automatic update?"
+    Write-Host "0) No - Keep default settings (Press Enter)"
+    Write-Host "1) Yes - Disable automatic update"
+    $choice = Read-Host "Please enter the option (0)"
 
     if ($choice -eq "1") {
         Write-Host ""
-        Write-Host "$GREEN[Info]$NC Processing automatic updates..."
+        Write-Host "$GREEN[Info]$NC Processing automatic update..."
         $updaterPath = "$env:LOCALAPPDATA\cursor-updater"
 
-        # Define manual setup tutorial
+        # Define manual settings tutorial
         function Show-ManualGuide {
             Write-Host ""
-            Write-Host "$YELLOW[Warning]$NC Automatic setup failed, please try manual operation:"
-            Write-Host "$YELLOWManual steps to disable updates:$NC"
+            Write-Host "$YELLOW[Warning]$NC Automatic settings failed, please try manual operation:"
+            Write-Host "$YELLOWManual disable update steps:$NC"
             Write-Host "1. Open PowerShell as administrator"
             Write-Host "2. Copy and paste the following commands:"
-            Write-Host "$BLUECommand 1 - Delete existing directory (if it exists):$NC"
+            Write-Host "$BLUECommand 1 - Delete existing directory (if exist):$NC"
             Write-Host "Remove-Item -Path `"$updaterPath`" -Force -Recurse -ErrorAction SilentlyContinue"
             Write-Host ""
             Write-Host "$BLUECommand 2 - Create blocking file:$NC"
             Write-Host "New-Item -Path `"$updaterPath`" -ItemType File -Force | Out-Null"
             Write-Host ""
-            Write-Host "$BLUECommand 3 - Set read-only property:$NC"
+            Write-Host "$BLUECommand 3 - Set read-only attribute:$NC"
             Write-Host "Set-ItemProperty -Path `"$updaterPath`" -Name IsReadOnly -Value `$true"
             Write-Host ""
             Write-Host "$BLUECommand 4 - Set permissions (optional):$NC"
@@ -393,22 +489,22 @@ try {
             Write-Host ""
             Write-Host "$YELLOWVerification method:$NC"
             Write-Host "1. Run command: Get-ItemProperty `"$updaterPath`""
-            Write-Host "2. Confirm IsReadOnly property is True"
+            Write-Host "2. Confirm IsReadOnly attribute is True"
             Write-Host "3. Run command: icacls `"$updaterPath`""
-            Write-Host "4. Confirm only read permissions exist"
+            Write-Host "4. Confirm only read permission"
             Write-Host ""
-            Write-Host "$YELLOW[Tip]$NC Restart Cursor after completion"
+            Write-Host "$YELLOW[Tip]$NC Please restart Cursor after completion"
         }
 
         try {
             # Check if cursor-updater exists
             if (Test-Path $updaterPath) {
-                # If it's a file, update blocking is already created
+                # If it's a file, it means the update blocking file has already been created
                 if ((Get-Item $updaterPath) -is [System.IO.FileInfo]) {
-                    Write-Host "$GREEN[Info]$NC Update blocking file already created, no need to block again"
+                    Write-Host "$GREEN[Info]$NC Update blocking file already exists, no need to block again"
                     return
                 }
-                # If it's a directory, try to delete it
+                # If it's a directory, try to delete
                 else {
                     try {
                         Remove-Item -Path $updaterPath -Force -Recurse -ErrorAction Stop
@@ -435,7 +531,7 @@ try {
 
             # Set file permissions
             try {
-                # Set read-only property
+                # Set read-only attribute
                 Set-ItemProperty -Path $updaterPath -Name IsReadOnly -Value $true -ErrorAction Stop
                 
                 # Use icacls to set permissions
@@ -456,21 +552,21 @@ try {
             try {
                 $fileInfo = Get-ItemProperty $updaterPath
                 if (-not $fileInfo.IsReadOnly) {
-                    Write-Host "$RED[Error]$NC Verification failed: File permission settings may not have taken effect"
+                    Write-Host "$RED[Error]$NC Verification failed: file permissions may not have been set"
                     Show-ManualGuide
                     return
                 }
             }
             catch {
-                Write-Host "$RED[Error]$NC Failed to verify settings"
+                Write-Host "$RED[Error]$NC Verification failed"
                 Show-ManualGuide
                 return
             }
 
-            Write-Host "$GREEN[Info]$NC Successfully disabled automatic updates"
+            Write-Host "$GREEN[Info]$NC Successfully disabled automatic update"
         }
         catch {
-            Write-Host "$RED[Error]$NC Unknown error occurred: $_"
+            Write-Host "$RED[Error]$NC Unknown error: $_"
             Show-ManualGuide
         }
     }
@@ -484,7 +580,7 @@ try {
 } catch {
     Write-Host "$RED[Error]$NC Main operation failed: $_"
     Write-Host "$YELLOW[Attempting]$NC Using alternative method..."
-    
+
     try {
         # Alternative method: Using Add-Content
         $tempFile = [System.IO.Path]::GetTempFileName()
@@ -529,13 +625,4 @@ function Write-ConfigFile {
     catch {
         throw "Failed to write configuration file: $_"
     }
-}
-
-# Get and display version information
-$cursorVersion = Get-CursorVersion
-Write-Host ""
-if ($cursorVersion) {
-    Write-Host "$GREEN[Info]$NC Detected Cursor version: $cursorVersion, continuing execution..."
-} else {
-    Write-Host "$YELLOW[Warning]$NC Unable to detect version, will continue execution..."
 } 
