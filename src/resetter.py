@@ -82,9 +82,16 @@ def clear_vscdb_telemetry_data(base_path, backup_dir):
         'telemetry.firstSessionDate',
         'telemetry.lastSessionDate',
         'telemetry.currentSessionDate',
+        'cursorAuth/accessToken',
+        'cursorAuth/refreshToken',
+        'cursorAuth/cachedEmail',
+        'cursorAuth/cachedSignUpType',
         'cursorAuth/onboardingDate',
+        'cursorAuth/stripeMembershipType',
         'aiCodeTrackingStartTime',
-        'aiCodeTrackingLines'
+        'aiCodeTrackingLines',
+        'aicontext.personalContext',
+        'anysphere.cursor-always-local',
     ]
 
     try:

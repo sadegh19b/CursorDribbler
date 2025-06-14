@@ -1,6 +1,7 @@
 from utils import print_logo, print_menu
 from account_info import display_account_info
 from resetter import run_cursor_resetter
+from browser_automation import create_temp_email, create_cursor_account
 from constants import EMOJI, APP_NAME, VERSION
 from colorama import Fore, Style
 import os
@@ -15,10 +16,16 @@ def main():
         print_menu()
 
         try:
-            choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}Enter your choice (0-1): {Style.RESET_ALL}")
+            choice = input(f"\n{EMOJI['ARROW']} {Fore.CYAN}Enter your choice (0-3): {Style.RESET_ALL}")
 
             if choice == "1":
                 run_cursor_resetter()
+                input(f"\n{Fore.GREEN}Press Enter to return to menu...{Style.RESET_ALL}")
+            elif choice == "2":
+                create_temp_email()
+                input(f"\n{Fore.GREEN}Press Enter to return to menu...{Style.RESET_ALL}")
+            elif choice == "3":
+                create_cursor_account()
                 input(f"\n{Fore.GREEN}Press Enter to return to menu...{Style.RESET_ALL}")
             elif choice == "0":
                 print(f"\n{Fore.CYAN}Goodbye!{Style.RESET_ALL}")
