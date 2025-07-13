@@ -2,15 +2,16 @@
 
 ![Cursor Dribbler Splash](assets/splash.png)
 
-A simple tool to check Cursor editor account information, subscription status, usage statistics, and reset machine id.
+A simple tool to check Cursor editor account information, subscription status, and reset machine id.
 
 ## Features
 
 - View account email
 - Check subscription type (Free, Pro, Team, etc.)
 - See remaining trial days (if applicable)
-- View usage statistics for Fast Response and Slow Response
 - Run Cursor Resetter with a simple menu option
+- Create Cursor account with a simple menu option
+- Display temp-email sites working for Cursor account creation
 
 ## Requirements
 

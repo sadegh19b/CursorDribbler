@@ -17,8 +17,10 @@ EMOJI = {
     "ARROW": "➜",
     "BROWSER": "🌐",
     "EMAIL": "📧",
-    "ACCOUNT": "🔑"
+    "ACCOUNT": "🔑",
+    "FORM": "📝",
+    "BACK": "🔙"
 }
 
 APP_NAME = "Cursor Dribbler"
-VERSION = "v1.3.0"
+VERSION = "v1.4.0"

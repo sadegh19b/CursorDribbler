@@ -8,6 +8,11 @@ def get_default_browser_path(browser_type: str) -> str:
     """Gets the default path for a browser based on the OS."""
     if sys.platform == "win32":
         paths = {
+            "firefox": [
+                "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe",
+                os.path.join(os.path.expanduser("~"), "AppData\\Local\\Mozilla\\Firefox\\firefox.exe"),
+            ],
             "chrome": [
                 "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
                 "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
@@ -27,6 +32,7 @@ def get_default_browser_path(browser_type: str) -> str:
                 return path
     elif sys.platform == "darwin":
         paths = {
+            "firefox": "/Applications/Firefox.app/Contents/MacOS/firefox",
             "chrome": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             "edge": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
             "brave": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
@@ -79,7 +85,7 @@ def print_menu():
     print(f"\n{Fore.CYAN}{EMOJI['MENU']} Menu:{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}{'─' * 50}{Style.RESET_ALL}")
     print(f"{Fore.GREEN}1{Style.RESET_ALL}. {EMOJI['RUN']} Cursor Resetter")
-    print(f"{Fore.GREEN}2{Style.RESET_ALL}. {EMOJI['EMAIL']} Create Temporary Email")
-    print(f"{Fore.GREEN}3{Style.RESET_ALL}. {EMOJI['ACCOUNT']} Create Cursor Account")
+    print(f"{Fore.GREEN}2{Style.RESET_ALL}. {EMOJI['ACCOUNT']} Create Cursor Account")
+    print(f"{Fore.GREEN}3{Style.RESET_ALL}. {EMOJI['EMAIL']} Display Temp Email Sites")
     print(f"{Fore.GREEN}0{Style.RESET_ALL}. {EMOJI['ERROR']} Exit")
     print(f"{Fore.YELLOW}{'─' * 50}{Style.RESET_ALL}")
