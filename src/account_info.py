@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import requests
 import sqlite3
@@ -155,29 +154,6 @@ def get_subscription_info(token):
     except:
         return None
 
-def get_usage_info(token):
-    """Get usage info"""
-    url = "https://www.cursor.com/api/usage"
-    headers = Config.BASE_HEADERS.copy()
-    headers.update({"Cookie": f"WorkosCursorSessionToken=user_01OOOOOOOOOOOOOOOOOOOOOOOO%3A%3A{token}"})
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        gpt4_data = data.get("gpt-4", {})
-        premium_usage = gpt4_data.get("numRequestsTotal", 0)
-        max_premium_usage = gpt4_data.get("maxRequestUsage", 999)
-        gpt35_data = data.get("gpt-3.5-turbo", {})
-        basic_usage = gpt35_data.get("numRequestsTotal", 0)
-        return {
-            'premium_usage': premium_usage,
-            'max_premium_usage': max_premium_usage,
-            'basic_usage': basic_usage,
-            'max_basic_usage': "No Limit"
-        }
-    except:
-        return None
-
 def format_subscription_type(subscription_data):
     """Format subscription type"""
     if not subscription_data:
@@ -241,25 +217,4 @@ def display_account_info():
             print(f"⏱️ Remaining Pro Trial: {Fore.WHITE}{days_remaining} days{Style.RESET_ALL}")
     else:
         print(f"{Fore.YELLOW}{EMOJI['WARNING']} Subscription information not found{Style.RESET_ALL}")
-    usage_info = get_usage_info(token)
-    if usage_info:
-        premium_usage = usage_info.get('premium_usage', 0) or 0
-        max_premium_usage = usage_info.get('max_premium_usage', "No Limit")
-        if isinstance(max_premium_usage, str):
-            premium_display = f"{premium_usage}/{max_premium_usage}"
-            premium_color = Fore.GREEN
-        else:
-            premium_percentage = (premium_usage / max_premium_usage) * 100 if max_premium_usage else 0
-            premium_color = Fore.GREEN
-            if premium_percentage > 70:
-                premium_color = Fore.YELLOW
-            if premium_percentage > 90:
-                premium_color = Fore.RED
-            premium_display = f"{premium_usage}/{max_premium_usage} ({premium_percentage:.1f}%)"
-        print(f"{Fore.YELLOW}{EMOJI['PREMIUM']} Fast Response: {premium_color}{premium_display}{Style.RESET_ALL}")
-        basic_usage = usage_info.get('basic_usage', 0) or 0
-        basic_display = f"{basic_usage}/No Limit"
-        print(f"{Fore.BLUE}{EMOJI['BASIC']} Slow Response: {Fore.GREEN}{basic_display}{Style.RESET_ALL}")
-    else:
-        print(f"{Fore.RED}{EMOJI['ERROR']} Failed to fetch usage info.{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}{'─' * 50}{Style.RESET_ALL}")
